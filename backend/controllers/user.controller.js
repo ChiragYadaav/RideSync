@@ -12,6 +12,10 @@ module.exports.registerUser = async (req, res, next) => {
     }
     
     const { fullname, password, email } = req.body;
+    const isUserExist = await userModel.findOne({ email });
+    if (isUserExist) {
+        return res.status(400).json({ message : "User already exists" });
+    }
     const hashedPassword = await userModel.hashPassword(password);
 
     const user = await userService.createUser({
@@ -22,7 +26,6 @@ module.exports.registerUser = async (req, res, next) => {
     });
 
     const token = user.generateAuthToken();
-
     return res.status(201).json({ token, user });
 
 };
@@ -35,7 +38,6 @@ module.exports.loginUser = async (req, res, next) => {
     }
 
     const { email, password } = req.body;
-
     const user = await userModel.findOne({ email }).select('+password');
 
     if (!user) {
@@ -43,14 +45,12 @@ module.exports.loginUser = async (req, res, next) => {
     }
 
     const isMatch = await user.comparePassword(password);
-
     if (!isMatch) {
         return res.status(401).json({ message: "Invalid Email or Password" });
     }
 
     const token = user.generateAuthToken();
     res.cookie('token',token);
-
     return res.status(200).json({ token, user })
 
 }; 
